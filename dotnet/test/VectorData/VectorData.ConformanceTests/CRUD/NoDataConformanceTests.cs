@@ -1,5 +1,6 @@
 ﻿// Copyright (c) Microsoft. All rights reserved.
 
+using System.Diagnostics;
 using Microsoft.Extensions.VectorData;
 using VectorData.ConformanceTests.Support;
 using VectorData.ConformanceTests.Xunit;
@@ -164,6 +165,8 @@ public class NoDataConformanceTests<TKey>(NoDataConformanceTests<TKey>.Fixture f
 
         protected override async Task WaitForDataAsync()
         {
+            var stopwatch = Stopwatch.StartNew();
+
             for (var i = 0; i < 20; i++)
             {
                 var getOptions = new RecordRetrievalOptions { IncludeVectors = true };
@@ -176,7 +179,8 @@ public class NoDataConformanceTests<TKey>(NoDataConformanceTests<TKey>.Fixture f
                 await Task.Delay(TimeSpan.FromMilliseconds(100));
             }
 
-            throw new InvalidOperationException("Data did not appear in the collection within the expected time.");
+            var elapsedSeconds = (int)stopwatch.Elapsed.TotalSeconds;
+            throw new InvalidOperationException($"Data did not appear in the collection within {elapsedSeconds} seconds.");
         }
     }
 }

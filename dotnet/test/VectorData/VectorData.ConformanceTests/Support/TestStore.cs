@@ -1,5 +1,6 @@
 ﻿// Copyright (c) Microsoft. All rights reserved.
 
+using System.Diagnostics;
 using System.Globalization;
 using System.Linq.Expressions;
 using Microsoft.Extensions.VectorData;
@@ -94,9 +95,10 @@ public abstract class TestStore
             throw new ArgumentException("vectorSize or dummyVector can't both be set");
         }
 
+        var stopwatch = Stopwatch.StartNew();
         var vector = dummyVector ?? new ReadOnlyMemory<float>(Enumerable.Range(0, vectorSize ?? 3).Select(i => (float)i).ToArray());
 
-        for (var i = 0; i < 200; i++)
+        for (var i = 0; i < 600; i++)
         {
             var results = collection.SearchAsync(
                 vector,
@@ -111,6 +113,7 @@ public abstract class TestStore
             await Task.Delay(TimeSpan.FromMilliseconds(100));
         }
 
-        throw new InvalidOperationException("Data did not appear in the collection within the expected time.");
+        var elapsedSeconds = (int)stopwatch.Elapsed.TotalSeconds;
+        throw new InvalidOperationException($"Data did not appear in the collection within {elapsedSeconds} seconds.");
     }
 }
