@@ -46,7 +46,7 @@ internal sealed class MongoTestStore : TestStore
     private async Task<MongoClientSettings> StartMongoDbContainerAsync()
     {
         this._container = new MongoDbBuilder()
-            .WithImage("mongodb/mongodb-atlas-local:7.0.6")
+            .WithImage("mongodb/mongodb-atlas-local:latest")
             .WithWaitStrategy(Wait.ForUnixContainer().AddCustomWaitStrategy(new MongoDbWaitUntil()))
             .Build();
 
