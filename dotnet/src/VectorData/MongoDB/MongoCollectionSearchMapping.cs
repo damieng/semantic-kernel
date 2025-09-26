@@ -46,7 +46,7 @@ internal static class MongoCollectionSearchMapping
             if (filterClause is EqualToFilterClause equalToFilterClause)
             {
                 propertyName = equalToFilterClause.FieldName;
-                propertyValue = BsonValue.Create(equalToFilterClause.Value);
+                propertyValue = MongoValue.CreateBsonValue(equalToFilterClause.Value);
                 filterOperator = EqualOperator;
             }
             else

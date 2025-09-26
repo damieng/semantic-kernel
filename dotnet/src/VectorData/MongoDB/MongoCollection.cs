@@ -162,7 +162,8 @@ public class MongoCollection<TKey, TRecord> : VectorStoreCollection<TKey, TRecor
     {
         Verify.NotNull(key);
 
-        await this.RunOperationAsync("DeleteOne", () => this._mongoCollection.DeleteOneAsync(this.GetFilterById(key), cancellationToken))
+        var filter = GetFilterById(key);
+        await this.RunOperationAsync("DeleteOne", () => this._mongoCollection.DeleteOneAsync(filter, cancellationToken))
             .ConfigureAwait(false);
     }
 
@@ -171,7 +172,8 @@ public class MongoCollection<TKey, TRecord> : VectorStoreCollection<TKey, TRecor
     {
         Verify.NotNull(keys);
 
-        await this.RunOperationAsync("DeleteMany", () => this._mongoCollection.DeleteManyAsync(this.GetFilterByIds(keys), cancellationToken))
+        var filter = GetFilterByIds(keys);
+        await this.RunOperationAsync("DeleteMany", () => this._mongoCollection.DeleteManyAsync(filter, cancellationToken))
             .ConfigureAwait(false);
     }
 
@@ -190,8 +192,9 @@ public class MongoCollection<TKey, TRecord> : VectorStoreCollection<TKey, TRecor
             throw new NotSupportedException(VectorDataStrings.IncludeVectorsNotSupportedWithEmbeddingGeneration);
         }
 
+        var filter = GetFilterById(key);
         using var cursor = await this
-            .FindAsync(this.GetFilterById(key), top: 1, skip: null, includeVectors, sortDefinition: null, cancellationToken)
+            .FindAsync(filter, top: 1, skip: null, includeVectors, sortDefinition: null, cancellationToken)
             .ConfigureAwait(false);
 
         var record = await cursor.SingleOrDefaultAsync(cancellationToken).ConfigureAwait(false);
@@ -219,7 +222,7 @@ public class MongoCollection<TKey, TRecord> : VectorStoreCollection<TKey, TRecor
         }
 
         using var cursor = await this
-            .FindAsync(this.GetFilterByIds(keys), top: null, skip: null, includeVectors, sortDefinition: null, cancellationToken)
+            .FindAsync(GetFilterByIds(keys), top: null, skip: null, includeVectors, sortDefinition: null, cancellationToken)
             .ConfigureAwait(false);
 
         while (await cursor.MoveNextAsync(cancellationToken).ConfigureAwait(false))
@@ -267,10 +270,11 @@ public class MongoCollection<TKey, TRecord> : VectorStoreCollection<TKey, TRecor
         var storageModel = this._mapper.MapFromDataToStorageModel(record, recordIndex, generatedEmbeddings);
 
         var key = GetStorageKey(storageModel);
+        var filter = GetFilterById(key);
 
         await this.RunOperationAsync(OperationName, async () =>
             await this._mongoCollection
-                .ReplaceOneAsync(this.GetFilterById(key), storageModel, replaceOptions, cancellationToken)
+                .ReplaceOneAsync(filter, storageModel, replaceOptions, cancellationToken)
                 .ConfigureAwait(false)).ConfigureAwait(false);
     }
 
@@ -675,11 +679,11 @@ public class MongoCollection<TKey, TRecord> : VectorStoreCollection<TKey, TRecor
         }
     }
 
-    private FilterDefinition<BsonDocument> GetFilterById(TKey id)
-        => Builders<BsonDocument>.Filter.Eq(MongoConstants.MongoReservedKeyPropertyName, id);
+    private static FilterDefinition<BsonDocument> GetFilterById(TKey id)
+        => Builders<BsonDocument>.Filter.Eq(MongoConstants.MongoReservedKeyPropertyName, MongoValue.CreateBsonValue(id));
 
-    private FilterDefinition<BsonDocument> GetFilterByIds(IEnumerable<TKey> ids)
-        => Builders<BsonDocument>.Filter.In(MongoConstants.MongoReservedKeyPropertyName, ids);
+    private static FilterDefinition<BsonDocument> GetFilterByIds(IEnumerable<TKey> ids)
+        => Builders<BsonDocument>.Filter.In(MongoConstants.MongoReservedKeyPropertyName, ids.Select(i => MongoValue.CreateBsonValue(i)).ToArray());
 
     private async Task<bool> InternalCollectionExistsAsync(CancellationToken cancellationToken)
     {
